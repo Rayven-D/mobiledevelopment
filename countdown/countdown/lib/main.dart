@@ -1,4 +1,7 @@
+import 'package:countdown/models/countdown_event.model.dart';
+import 'package:countdown/widgets/add_event_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,10 +15,18 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Crash Course',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.greenAccent,
+          brightness: Brightness.dark,
+        ),
         useMaterial3: true,
       ),
       home: const MyHomePage(),
+      themeMode: ThemeMode.system
     );
   }
 }
@@ -28,100 +39,81 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+
+  final List<CountdownEvent> events = [];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context){
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Crash Course'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+      appBar: AppBar(title: Text("Countdown"), backgroundColor: Theme.of(context).colorScheme.inversePrimary,),
 
-            // 1. TEXT STYLES
-            Text(
-              'Counter: $_counter',
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
-              ),
-            ),
-
-            const SizedBox(height: 32),  // spacer — like margin in CSS
-
-            // 2. DIFFERENT BUTTON TYPES
-            ElevatedButton(
-              onPressed: () => setState(() => _counter++),  // inline lambda
-              child: const Text('Increment'),
-            ),
-
-            const SizedBox(height: 8),
-
-            OutlinedButton(
-              onPressed: () => setState(() => _counter--),
-              child: const Text('Decrement'),
-            ),
-
-            const SizedBox(height: 8),
-
-            TextButton(
-              onPressed: () => setState(() => _counter = 0),
-              child: const Text('Reset'),
-            ),
-
-            const SizedBox(height: 32),
-
-            // 3. CONDITIONAL RENDERING — like *ngIf in Angular
-            if (_counter > 10)
-              const Text(
-                '🔥 Over 10!',
-                style: TextStyle(fontSize: 20, color: Colors.orange),
-              ),
-
-            if (_counter < 0)
-              const Text(
-                '❄️ Gone negative!',
-                style: TextStyle(fontSize: 20, color: Colors.blue),
-              ),
-
-            const SizedBox(height: 32),
-
-            // 4. ROW — horizontal layout
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // 5. CONTAINER — like a styled div
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
+      body: ListView.builder(
+        itemCount: events.length,
+        itemBuilder: (context, index) {
+          final event = events[index];
+          return Dismissible(
+            key: Key(event.eventName),
+            confirmDismiss: (direction) => showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text("Delete Event?"),
+                content: Text("Are you sure you want to delete event \"${event.eventName}\""),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text("Cancel")
                   ),
-                  child: Center(child: Text('$_counter', style: const TextStyle(fontSize: 24))),
-                ),
-
-                // 6. ICON BUTTON
-                IconButton(
-                  icon: const Icon(Icons.add_circle, size: 48, color: Colors.deepPurple),
-                  onPressed: () => setState(() => _counter++),
-                ),
-
-                IconButton(
-                  icon: const Icon(Icons.remove_circle, size: 48, color: Colors.red),
-                  onPressed: () => setState(() => _counter--),
-                ),
-              ],
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text("Delete")
+                  )
+                ]
+              )
             ),
-          ],
-        ),
+            onDismissed: (direction) {
+              setState(() {
+                events.remove(event);
+              });
+            },
+            background: Container(
+              color: Colors.red,
+              alignment: Alignment.centerLeft,
+              padding: EdgeInsets.only(left: 16),
+              child: Icon(Icons.delete, color: Colors.white),
+            ),
+            secondaryBackground: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: EdgeInsets.only(right: 16),
+              child: Icon(Icons.delete, color: Colors.white),
+            ),
+            child:  Card(
+              margin: EdgeInsets.all(8),
+              color: Theme.of(context).colorScheme.onPrimary,
+              child: ListTile(
+                
+                title: Text(event.eventName),
+                subtitle: Text(DateFormat('MMM dd, yyyy | h:mm a').format(event.eventTime))
+              ),
+            )
+          );
+        }
       ),
+
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final newEvent = await showModalBottomSheet(context: context, builder: (context) => AddEventSheet(), isDismissible: true,);
+
+          if(newEvent != null){
+            setState(() {
+              events.add(newEvent);
+            });
+          }
+        },
+        child: Icon(Icons.add),
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        foregroundColor: Colors.white,
+      )
     );
   }
 }
